@@ -1,0 +1,83 @@
+name: Build, Tag and Release
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            artifact_name: LightCode-windows.exe
+            package_cmd: pyinstaller --onefile --windowed --name LightCode main.py
+            artifact_path: dist/LightCode.exe
+          - os: ubuntu-latest
+            artifact_name: LightCode-linux
+            package_cmd: pyinstaller --onefile --name LightCode main.py
+            artifact_path: dist/LightCode
+            compress_cmd: tar -czvf LightCode-linux.tar.gz -C dist LightCode
+            final_artifact: LightCode-linux.tar.gz
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      - name: Install dependencies
+        run: |
+          pip install pyinstaller
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+      - name: Build executable
+        run: ${{ matrix.package_cmd }}
+      - name: Compress Linux artifact
+        if: runner.os == 'Linux'
+        run: ${{ matrix.compress_cmd }}
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: ${{ runner.os == 'Windows' && matrix.artifact_path || matrix.final_artifact }}
+
+  release:
+    name: Create Tag and Release
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - name: Display structure
+        run: ls -R artifacts
+      - name: Create tag and release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG_NAME="dev-build-$(date +'%Y%m%d-%H%M%S')"
+          echo "Creating tag $TAG_NAME"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag $TAG_NAME
+          git push https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }} $TAG_NAME
+
+          # 安装 GitHub CLI
+          type -p gh >/dev/null || (curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg && \
+            sudo chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg && \
+            echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null && \
+            sudo apt update && sudo apt install -y gh)
+
+          # 创建 release，上传两个产物
+          gh release create "$TAG_NAME" \
+            --title "Development Build $TAG_NAME" \
+            --prerelease \
+            --notes "Auto-generated from commit ${{ github.sha }}" \
+            artifacts/LightCode-windows.exe/LightCode-windows.exe \
+            artifacts/LightCode-linux/LightCode-linux.tar.gz
