@@ -7,7 +7,7 @@ import subprocess
 from config import load_config, save_config, DEFAULT_CONFIG
 from theme import get_theme
 from sidebar import Sidebar
-from notebook import EditorNotebook
+from tabs import EditorNotebook
 from dialogs import FindReplaceDialog
 from debugger import Debugger
 
