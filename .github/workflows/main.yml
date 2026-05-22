@@ -80,5 +80,5 @@ jobs:
             --title "Development Build $TAG_NAME" \
             --prerelease \
             --notes "Auto-generated from commit ${{ github.sha }}" \
-            artifacts/LightCode-windows.exe/LightCode-windows.exe \
+            artifacts/LightCode-windows.exe/LightCode.exe \
             artifacts/LightCode-linux/LightCode-linux.tar.gz
