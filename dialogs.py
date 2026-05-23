@@ -87,4 +87,7 @@ class FindReplaceDialog(tk.Toplevel):
         new_content = content.replace(find_str, replace_str)
         if new_content != content:
             self.editor.set_text(new_content)
+            self.editor.modified = True
+            self.editor.text.edit_modified(True)
+            self.editor.text.event_generate("<<Modified>>")
             messagebox.showinfo("Replace All", f"Replaced all occurrences of '{find_str}'")
