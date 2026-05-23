@@ -256,14 +256,14 @@ class LightCode:
 
     def on_exit(self):
         # 检查所有未保存文件
-        for editor in self.notebook.tabs.values():
+        for editor in list(self.notebook.tabs.values()):
             if editor.modified:
-                res = messagebox.askyesnocancel("Save", "Some files are modified. Save before exit?")
+                self.notebook.notebook.select(editor)
+                res = messagebox.askyesnocancel("Save", f"Save changes to '{editor.filepath or 'untitled'}'?")
                 if res is True:
-                    self.save_current()
+                    self.notebook.save_current()
                 elif res is None:
                     return
-                break
         save_config(self.config)
         self.root.destroy()
 
