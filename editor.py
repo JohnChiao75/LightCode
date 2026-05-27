@@ -45,7 +45,7 @@ class LineNumberedEditor(tk.Frame):
         self.line_numbers.pack(side="left", fill="y")
 
         # 文本区域
-        self.text = LineNumberText(self, theme, font_size, undo=True)
+        self.text = LineNumberText(self, theme, font_size)
         self.text.pack(side="right", fill="both", expand=True)
 
         # 插入初始文本
